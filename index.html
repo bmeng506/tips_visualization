@@ -1,0 +1,419 @@
+<!DOCTYPE html>
+<html lang="en" class="h-full bg-slate-950">
+<head>
+  <meta charset="UTF-8" />
+  <title>Restaurant Tipping Analysis</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+
+  <!-- Tailwind via CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          fontFamily: {
+            sans: ["Inter", "system-ui", "sans-serif"],
+          },
+        },
+      },
+    };
+  </script>
+
+  <!-- Google Font (optional but nice) -->
+  <link
+    rel="preconnect"
+    href="https://fonts.googleapis.com"
+  />
+  <link
+    rel="preconnect"
+    href="https://fonts.gstatic.com"
+    crossorigin
+  />
+  <link
+    href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap"
+    rel="stylesheet"
+  />
+</head>
+<body class="min-h-screen bg-gradient-to-br from-slate-900 via-slate-950 to-black text-slate-100 font-sans">
+  <div class="max-w-6xl mx-auto px-4 py-6 space-y-5">
+
+    <!-- HEADER -->
+    <header
+      class="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 rounded-full border border-slate-700/70 bg-slate-900/70 px-5 py-4 shadow-xl shadow-slate-950/80 backdrop-blur">
+      <div>
+        <h1 class="text-xl sm:text-2xl font-semibold tracking-tight">
+          Restaurant Tipping Analysis
+        </h1>
+        <p class="text-sm text-slate-400 mt-1">
+          Visual summary of tipping behavior using the classic
+          <code class="font-mono text-indigo-300 bg-slate-900/80 border border-slate-700/80 rounded px-1 py-0.5 text-xs">tips</code>
+          dataset.
+          Charts are computed in Python
+          <span class="text-slate-300">(pandas + seaborn + matplotlib)</span>
+        </p>
+      </div>
+    </header>
+
+    <!-- CONTROLS -->
+    <section
+      class="grid gap-4 md:grid-cols-[minmax(0,2fr)_minmax(0,1.4fr)_minmax(0,1.8fr)] rounded-3xl border border-slate-700/70 bg-slate-900/80 px-4 py-3 shadow-lg shadow-slate-950/70">
+      <!-- View mode pills -->
+      <div class="flex flex-col gap-2">
+        <span class="text-[0.7rem] uppercase tracking-[0.2em] text-slate-400">
+          View mode
+        </span>
+        <div class="flex flex-wrap gap-2">
+          <button
+            id="filterAll"
+            data-filter="all"
+            class="pill-button pill-button--active inline-flex items-center rounded-full border border-slate-600 bg-slate-900/80 px-3 py-1.5 text-xs text-slate-100 hover:border-indigo-400 hover:text-indigo-200 hover:bg-slate-900/90 transition">
+            All charts
+          </button>
+          <button
+            id="filterOverview"
+            data-filter="overview"
+            class="pill-button inline-flex items-center rounded-full border border-slate-600 bg-slate-900/80 px-3 py-1.5 text-xs text-slate-100 hover:border-indigo-400 hover:text-indigo-200 hover:bg-slate-900/90 transition">
+            Overview
+          </button>
+          <button
+            id="filterTime"
+            data-filter="time"
+            class="pill-button inline-flex items-center rounded-full border border-slate-600 bg-slate-900/80 px-3 py-1.5 text-xs text-slate-100 hover:border-indigo-400 hover:text-indigo-200 hover:bg-slate-900/90 transition">
+            By day &amp; meal
+          </button>
+          <button
+            id="filterMoney"
+            data-filter="money"
+            class="pill-button inline-flex items-center rounded-full border border-slate-600 bg-slate-900/80 px-3 py-1.5 text-xs text-slate-100 hover:border-indigo-400 hover:text-indigo-200 hover:bg-slate-900/90 transition">
+            Bill &amp; party size
+          </button>
+        </div>
+      </div>
+
+      <!-- Question selector -->
+      <div class="flex flex-col gap-2">
+        <label
+          for="questionSelector"
+          class="text-[0.7rem] uppercase tracking-[0.2em] text-slate-400">
+          Questions
+        </label>
+        <select
+          id="questionSelector"
+          class="w-full rounded-full border border-slate-600 bg-slate-900/80 px-3 py-1.5 text-xs text-slate-100 focus:outline-none focus:ring-1 focus:ring-indigo-400 focus:border-indigo-400">
+          <option value="none">Pick a question…</option>
+          <option value="dist">What does typical tipping look like?</option>
+          <option value="day">Do people tip differently on certain days?</option>
+          <option value="weekend">Are weekend tips different?</option>
+          <option value="meal">Is dinner more generous than lunch?</option>
+          <option value="size">Are big tables more or less generous?</option>
+          <option value="bill">How do tip and bill size relate?</option>
+          <option value="summary">What’s the high-level summary?</option>
+        </select>
+      </div>
+
+      <!-- Static summary text -->
+      <div class="flex items-center">
+        <p class="text-xs text-slate-400">
+          
+        </p>
+      </div>
+    </section>
+
+    <!-- INSIGHTS -->
+    <section
+      class="rounded-3xl border border-dashed border-slate-600 bg-slate-900/70 px-4 py-3 shadow-md shadow-slate-950/60">
+      <h2 class="text-[0.7rem] uppercase tracking-[0.2em] text-slate-400 mb-2">
+        Quick insights
+      </h2>
+      <div class="flex flex-wrap gap-2">
+        <button
+          class="insight-chip inline-flex items-center rounded-full border border-slate-600 bg-slate-900/80 px-3 py-1 text-[0.7rem] text-slate-100 hover:border-indigo-400 hover:bg-slate-900/90 hover:text-indigo-200 transition"
+          data-scroll-target="card-dist">
+          Typical tipping range
+        </button>
+        <button
+          class="insight-chip inline-flex items-center rounded-full border border-slate-600 bg-slate-900/80 px-3 py-1 text-[0.7rem] text-slate-100 hover:border-indigo-400 hover:bg-slate-900/90 hover:text-indigo-200 transition"
+          data-scroll-target="card-day">
+          Day-of-week patterns
+        </button>
+        <button
+          class="insight-chip inline-flex items-center rounded-full border border-slate-600 bg-slate-900/80 px-3 py-1 text-[0.7rem] text-slate-100 hover:border-indigo-400 hover:bg-slate-900/90 hover:text-indigo-200 transition"
+          data-scroll-target="card-weekend">
+          Weekday vs weekend
+        </button>
+        <button
+          class="insight-chip inline-flex items-center rounded-full border border-slate-600 bg-slate-900/80 px-3 py-1 text-[0.7rem] text-slate-100 hover:border-indigo-400 hover:bg-slate-900/90 hover:text-indigo-200 transition"
+          data-scroll-target="card-meal">
+          Lunch vs dinner
+        </button>
+        <button
+          class="insight-chip inline-flex items-center rounded-full border border-slate-600 bg-slate-900/80 px-3 py-1 text-[0.7rem] text-slate-100 hover:border-indigo-400 hover:bg-slate-900/90 hover:text-indigo-200 transition"
+          data-scroll-target="card-size">
+          Party size effects
+        </button>
+        <button
+          class="insight-chip inline-flex items-center rounded-full border border-slate-600 bg-slate-900/80 px-3 py-1 text-[0.7rem] text-slate-100 hover:border-indigo-400 hover:bg-slate-900/90 hover:text-indigo-200 transition"
+          data-scroll-target="card-bill">
+          Bill vs tip relationship
+        </button>
+        <button
+          class="insight-chip inline-flex items-center rounded-full border border-slate-600 bg-slate-900/80 px-3 py-1 text-[0.7rem] text-slate-100 hover:border-indigo-400 hover:bg-slate-900/90 hover:text-indigo-200 transition"
+          data-scroll-target="card-summary">
+          Summary by day &amp; meal
+        </button>
+      </div>
+    </section>
+
+    <!-- GRID OF CHART CARDS -->
+    <main class="grid gap-4 md:grid-cols-2">
+      <!-- 1. Distribution -->
+      <section
+        id="card-dist"
+        data-group="overview"
+        class="chart-card flex flex-col gap-2 rounded-3xl border border-slate-700/80 bg-slate-900/80 p-4 shadow-lg shadow-slate-950/70">
+        <div>
+          <h2 class="text-sm font-semibold tracking-tight">Tip % Distribution</h2>
+          <p class="text-[0.75rem] text-slate-400">
+            Overall generosity across all tables.
+          </p>
+        </div>
+        <div class="mt-1 flex h-60 items-center justify-center">
+          <img
+            src="charts/tip_pct_distribution.png"
+            alt="Histogram of tip percentage"
+            class="chart-image max-h-full max-w-full rounded-xl border border-indigo-500/40 object-contain cursor-zoom-in transition hover:shadow-xl hover:shadow-slate-950/80 hover:border-indigo-300"
+            data-full="charts/tip_pct_distribution.png" />
+        </div>
+        <details class="mt-1 text-xs text-slate-300/90">
+          <summary class="cursor-pointer text-[0.75rem] text-indigo-300">
+            What this shows
+          </summary>
+          <p class="mt-1 text-[0.75rem] text-slate-400">
+            This histogram shows how tip percentage is distributed for all tables, highlighting
+            the most common tipping range and the presence of unusually low or high tips.
+          </p>
+        </details>
+      </section>
+
+      <!-- 2. Tip % by day -->
+      <section
+        id="card-day"
+        data-group="time"
+        class="chart-card flex flex-col gap-2 rounded-3xl border border-slate-700/80 bg-slate-900/80 p-4 shadow-lg shadow-slate-950/70">
+        <div>
+          <h2 class="text-sm font-semibold tracking-tight">Tip % by Day</h2>
+          <p class="text-[0.75rem] text-slate-400">
+            Comparing tipping patterns across days.
+          </p>
+        </div>
+        <div class="mt-1 flex h-60 items-center justify-center">
+          <img
+            src="charts/tip_pct_by_day.png"
+            alt="Boxplot of tip percentage by day"
+            class="chart-image max-h-full max-w-full rounded-xl border border-indigo-500/40 object-contain cursor-zoom-in transition hover:shadow-xl hover:shadow-slate-950/80 hover:border-indigo-300"
+            data-full="charts/tip_pct_by_day.png" />
+        </div>
+        <details class="mt-1 text-xs text-slate-300/90">
+          <summary class="cursor-pointer text-[0.75rem] text-indigo-300">
+            What this shows
+          </summary>
+          <p class="mt-1 text-[0.75rem] text-slate-400">
+            Each box summarizes the distribution of tip percentages for a given day, so you can
+            compare median tipping and variability across Thursday, Friday, Saturday, and Sunday.
+          </p>
+        </details>
+      </section>
+
+      <!-- 3. Weekday vs weekend -->
+      <section
+        id="card-weekend"
+        data-group="time"
+        class="chart-card flex flex-col gap-2 rounded-3xl border border-slate-700/80 bg-slate-900/80 p-4 shadow-lg shadow-slate-950/70">
+        <div>
+          <h2 class="text-sm font-semibold tracking-tight">Weekday vs Weekend</h2>
+          <p class="text-[0.75rem] text-slate-400">
+            Do people tip differently on weekends?
+          </p>
+        </div>
+        <div class="mt-1 flex h-60 items-center justify-center">
+          <img
+            src="charts/tip_pct_weekday_weekend.png"
+            alt="Boxplot of tip percentage: weekday vs weekend"
+            class="chart-image max-h-full max-w-full rounded-xl border border-indigo-500/40 object-contain cursor-zoom-in transition hover:shadow-xl hover:shadow-slate-950/80 hover:border-indigo-300"
+            data-full="charts/tip_pct_weekday_weekend.png" />
+        </div>
+        <details class="mt-1 text-xs text-slate-300/90">
+          <summary class="cursor-pointer text-[0.75rem] text-indigo-300">
+            What this shows
+          </summary>
+          <p class="mt-1 text-[0.75rem] text-slate-400">
+            This compares tip percentages on weekdays versus weekends to reveal whether
+            weekend diners are more generous than weekday diners.
+          </p>
+        </details>
+      </section>
+
+      <!-- 4. Lunch vs dinner -->
+      <section
+        id="card-meal"
+        data-group="time"
+        class="chart-card flex flex-col gap-2 rounded-3xl border border-slate-700/80 bg-slate-900/80 p-4 shadow-lg shadow-slate-950/70">
+        <div>
+          <h2 class="text-sm font-semibold tracking-tight">Lunch vs Dinner</h2>
+          <p class="text-[0.75rem] text-slate-400">
+            Meal-time effects on tipping percentage.
+          </p>
+        </div>
+        <div class="mt-1 flex h-60 items-center justify-center">
+          <img
+            src="charts/tip_pct_by_meal.png"
+            alt="Boxplot of tip percentage at lunch vs dinner"
+            class="chart-image max-h-full max-w-full rounded-xl border border-indigo-500/40 object-contain cursor-zoom-in transition hover:shadow-xl hover:shadow-slate-950/80 hover:border-indigo-300"
+            data-full="charts/tip_pct_by_meal.png" />
+        </div>
+        <details class="mt-1 text-xs text-slate-300/90">
+          <summary class="cursor-pointer text-[0.75rem] text-indigo-300">
+            What this shows
+          </summary>
+          <p class="mt-1 text-[0.75rem] text-slate-400">
+            This chart shows how tipping differs between lunch and dinner,
+            comparing central tendencies and variability for each meal.
+          </p>
+        </details>
+      </section>
+
+      <!-- 5. Party size vs tip % -->
+      <section
+        id="card-size"
+        data-group="money"
+        class="chart-card flex flex-col gap-2 rounded-3xl border border-slate-700/80 bg-slate-900/80 p-4 shadow-lg shadow-slate-950/70">
+        <div>
+          <h2 class="text-sm font-semibold tracking-tight">Party Size vs Tip %</h2>
+          <p class="text-[0.75rem] text-slate-400">
+            Are large groups more or less generous?
+          </p>
+        </div>
+        <div class="mt-1 flex h-60 items-center justify-center">
+          <img
+            src="charts/tip_pct_vs_party_size.png"
+            alt="Scatter and line plot of tip percentage vs party size"
+            class="chart-image max-h-full max-w-full rounded-xl border border-indigo-500/40 object-contain cursor-zoom-in transition hover:shadow-xl hover:shadow-slate-950/80 hover:border-indigo-300"
+            data-full="charts/tip_pct_vs_party_size.png" />
+        </div>
+        <details class="mt-1 text-xs text-slate-300/90">
+          <summary class="cursor-pointer text-[0.75rem] text-indigo-300">
+            What this shows
+          </summary>
+          <p class="mt-1 text-[0.75rem] text-slate-400">
+            Each point is a table, and the line shows the average tip percentage
+            for each party size, revealing how generosity changes as group size grows.
+          </p>
+        </details>
+      </section>
+
+      <!-- 6. Tip vs total bill -->
+      <section
+        id="card-bill"
+        data-group="money"
+        class="chart-card md:col-span-2 flex flex-col gap-2 rounded-3xl border border-slate-700/80 bg-slate-900/80 p-4 shadow-lg shadow-slate-950/70">
+        <div>
+          <h2 class="text-sm font-semibold tracking-tight">Tip vs Total Bill</h2>
+          <p class="text-[0.75rem] text-slate-400">
+            Color encodes tip percentage; point size encodes party size.
+          </p>
+        </div>
+        <div class="mt-1 flex h-64 items-center justify-center">
+          <img
+            src="charts/tip_vs_total_bill.png"
+            alt="Scatterplot of total bill vs tip"
+            class="chart-image max-h-full max-w-full rounded-xl border border-indigo-500/40 object-contain cursor-zoom-in transition hover:shadow-xl hover:shadow-slate-950/80 hover:border-indigo-300"
+            data-full="charts/tip_vs_total_bill.png" />
+        </div>
+        <details class="mt-1 text-xs text-slate-300/90">
+          <summary class="cursor-pointer text-[0.75rem] text-indigo-300">
+            What this shows
+          </summary>
+          <p class="mt-1 text-[0.75rem] text-slate-400">
+            This scatter plot shows how tip amounts grow with total bill size,
+            while color and point size encode tip percentage and party size,
+            highlighting whether tips scale proportionally with bills.
+          </p>
+        </details>
+      </section>
+
+      <!-- 7. Summary by day & meal -->
+      <section
+        id="card-summary"
+        data-group="overview"
+        class="chart-card md:col-span-2 flex flex-col gap-2 rounded-3xl border border-slate-700/80 bg-slate-900/80 p-4 shadow-lg shadow-slate-950/70">
+        <div>
+          <h2 class="text-sm font-semibold tracking-tight">
+            Average Tip % by Day &amp; Meal
+          </h2>
+          <p class="text-[0.75rem] text-slate-400">
+            High-level summary combining day of week and meal type.
+          </p>
+        </div>
+        <div class="mt-1 flex h-64 items-center justify-center">
+          <img
+            src="charts/avg_tip_pct_by_day_meal.png"
+            alt="Bar chart of average tip percentage by day and meal"
+            class="chart-image max-h-full max-w-full rounded-xl border border-indigo-500/40 object-contain cursor-zoom-in transition hover:shadow-xl hover:shadow-slate-950/80 hover:border-indigo-300"
+            data-full="charts/avg_tip_pct_by_day_meal.png" />
+        </div>
+        <details class="mt-1 text-xs text-slate-300/90">
+          <summary class="cursor-pointer text-[0.75rem] text-indigo-300">
+            What this shows
+          </summary>
+          <p class="mt-1 text-[0.75rem] text-slate-400">
+            This bar chart aggregates the data to show average tip percentage
+            for each combination of day and meal, summarizing most of the
+            patterns observed in the earlier charts.
+          </p>
+        </details>
+      </section>
+    </main>
+
+    <!-- FOOTER -->
+    <footer class="pt-1 text-center text-[0.7rem] text-slate-500">
+      <p>
+        Charts generated in Python · Frontend built with Tailwind
+      </p>
+    </footer>
+  </div>
+
+  <!-- LIGHTBOX -->
+  <div
+    id="lightbox"
+    class="fixed inset-0 z-50 hidden">
+    <div class="absolute inset-0 bg-slate-950/80 backdrop-blur-sm"></div>
+    <div
+      class="relative mx-auto flex h-full max-w-3xl items-center justify-center px-4">
+      <div
+        class="relative w-full rounded-2xl border border-slate-700 bg-slate-900 px-3 py-2 shadow-2xl shadow-black">
+        <button
+          id="lightboxClose"
+          class="ml-auto mb-1 flex h-7 w-7 items-center justify-center rounded-full border border-slate-600 bg-slate-900 text-xs text-slate-200 hover:bg-rose-600 hover:border-rose-400 transition"
+          aria-label="Close">
+          ✕
+        </button>
+        <div class="flex max-h-[70vh] items-center justify-center">
+          <img
+            id="lightboxImage"
+            src=""
+            alt="Enlarged chart"
+            class="max-h-[70vh] w-full rounded-xl border border-indigo-500/50 object-contain" />
+        </div>
+        <p
+          id="lightboxCaption"
+          class="mt-2 text-[0.75rem] text-slate-400">
+        </p>
+      </div>
+    </div>
+  </div>
+
+  <!-- JS -->
+  <script src="app.js"></script>
+</body>
+</html>
