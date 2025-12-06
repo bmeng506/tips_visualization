@@ -105,7 +105,7 @@ Then open in a browser:
 http://localhost:8000/index.html
 ```
 
-You should see:
+Features:
 
 - A header describing the project  
 - Controls at the top (view mode buttons, question dropdown)  
